@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'screens/household_accounts_page.dart';
+import 'screens/maintenance_records_page.dart';
+import 'screens/maintenance_schedule_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,31 +18,6 @@ Future<void> main() async {
     anonKey: dotenv.get('VAR_ANONKEY'),
   );
   //eof_20240519_deleta_Vercel.json対応
-  
-  // // 20240519_add_Vercel.json対応_ビルド時に設定された環境変数を読み込む
-  // const varUrl = String.fromEnvironment('VAR_URL', defaultValue: '');
-  // const varAnonKey = String.fromEnvironment('VAR_ANONKEY', defaultValue: '');
-
-  // // Supabaseを初期化
-  // await Supabase.initialize(
-  //   url: varUrl,
-  //   anonKey: varAnonKey,
-  // );
-  // --eof 
-
-  // // 20240519_002 add Vecel.json 対応2回目//
-  // await dotenv.load();
-
-  // // 20240519_002_add_Vercel.json対応_ビルド時に設定された環境変数を読み込む
-  // const varUrl = String.fromEnvironment('VAR_URL', defaultValue: '');
-  // const varAnonKey = String.fromEnvironment('VAR_ANONKEY', defaultValue: '');
-
-  // // 20240519_002_add_Supabaseを初期化
-  // await Supabase.initialize(
-  //   url: varUrl,
-  //   anonKey: varAnonKey,
-  // );
-  // // 20240519_002_eof
 
   // Flutterアプリを起動.
   runApp(const FlutterTestApp());
@@ -52,7 +30,7 @@ class FlutterTestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Home333',
+      title: 'Home',
       // 20240519_002_Vercel.json対応
       home: const HomePage(),  // ホーム画面としてHomePageを指定.
     );
@@ -74,7 +52,13 @@ class _HomePageState extends State<HomePage> {
       .stream(primaryKey: ['id']);
 
   // フォームの入力値を保存するためのコントローラー.
-  final TextEditingController _body = TextEditingController();
+  // final TextEditingController _body = TextEditingController();
+  
+  // フォームの入力値を保存するためのコントローラー.（追加対応）
+  final TextEditingController _bodyController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _inputDateController = TextEditingController();
+  bool _isDone = false;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +66,57 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('My Notes'),
       ),
+
+      // drawerのコードを追加
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'Menu',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              title: const Text('家計簿'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HouseholdAccountsPage()),
+                );
+              },
+            ),
+            ListTile(
+              title: const Text('メンテ実績登録'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MaintenanceRecordsPage()),
+                );
+              },
+            ),
+            ListTile(
+              title: const Text('メンテ予定登録'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MaintenanceSchedulePage()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+
+
+
       // StreamBuilderを使用してリアルタイムでデータの変更を反映.
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _carMaintenanceStream,
@@ -120,14 +155,14 @@ class _HomePageState extends State<HomePage> {
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 1.0),
                                 children: [
                                   TextFormField(
-                                    controller: _body,  // 入力フォームのコントローラーを設定.
+                                    controller: _bodyController,  // 入力フォームのコントローラーを設定.
                                   ),
                                   ElevatedButton(
                                     onPressed: () async {
                                       // データベースの内容を更新する処理.
                                       await Supabase.instance.client
                                           .from('t_car_maintenance')
-                                          .update({'content': _body.text})
+                                          .update({'content': _bodyController.text})
                                           .match({'id': item['id']});
                                       Navigator.of(context).pop();  // ダイアログを閉じる.
                                     },
@@ -143,14 +178,41 @@ class _HomePageState extends State<HomePage> {
                           color: Colors.blueAccent,
                         ),
                       ),
-                      // 削除ボタン
+                       // 削除ボタン
                       IconButton(
                         onPressed: () async {
-                          // 選択したアイテムをデータベースから削除する処理.
-                          await Supabase.instance.client
-                              .from('t_car_maintenance')
-                              .delete()
-                              .match({'id': item['id']});
+                          // 確認ダイアログを表示.
+                          bool? confirmDelete = await showDialog<bool>(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                title: const Text('Confirm Delete'),
+                                content: const Text('Are you sure you want to delete this item?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop(false);  // 削除をキャンセル.
+                                    },
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop(true);  // 削除を確認.
+                                    },
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+
+                          if (confirmDelete == true) {
+                            // 選択したアイテムをデータベースから削除する処理.
+                            await Supabase.instance.client
+                                .from('t_car_maintenance')
+                                .delete()
+                                .match({'id': item['id']});
+                          }
                         },
                         icon: const Icon(
                           Icons.delete,
@@ -158,6 +220,21 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     ],
+                    //   // 削除ボタン
+                    //   IconButton(
+                    //     onPressed: () async {
+                    //       // 選択したアイテムをデータベースから削除する処理.
+                    //       await Supabase.instance.client
+                    //           .from('t_car_maintenance')
+                    //           .delete()
+                    //           .match({'id': item['id']});
+                    //     },
+                    //     icon: const Icon(
+                    //       Icons.delete,
+                    //       color: Colors.redAccent,
+                    //     ),
+                    //   ),
+                    // ],
                   ),
                 ),
                 title: Text(body ?? 'No body'), // ノートの内容を表示.
@@ -167,6 +244,8 @@ class _HomePageState extends State<HomePage> {
           );
         },
       ),
+
+
       // 追加ボタン
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -179,14 +258,39 @@ class _HomePageState extends State<HomePage> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 1.0),
                 children: [
                   TextFormField(
-                    controller: _body,  // 入力フォームのコントローラーを設定.
+                    controller: _bodyController,  // 入力フォームのコントローラーを設定.
+                    decoration: const InputDecoration(labelText: 'Content'),
+                  ),
+                  TextFormField(
+                    controller: _priceController,
+                    decoration: const InputDecoration(labelText: 'Price'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  TextFormField(
+                    controller: _inputDateController,
+                    decoration: const InputDecoration(labelText: 'Input Date (YYYY-MM-DD)'),
+                    keyboardType: TextInputType.datetime,
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Is Done'),
+                    value: _isDone,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _isDone = value ?? false;
+                      });
+                    },
                   ),
                   ElevatedButton(
                     onPressed: () async {
                       // 新しいノートをデータベースに追加する処理.
                       await Supabase.instance.client
                           .from('t_car_maintenance')
-                          .insert({'content': _body.text});
+                          .insert({
+                            'content': _bodyController.text,
+                            'price': int.parse(_priceController.text),
+                            'is_done': _isDone,
+                            'input_date': _inputDateController.text,
+                          });
                       Navigator.of(context).pop();  // ダイアログを閉じる.
                     },
                     child: const Text('Post'),
