@@ -1,125 +1,203 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  //20240519_deleta_Vercel.json対応
+  //.envファイルを読み込む設定.
+  await dotenv.load(fileName: 'env');
+
+  // Supabaseを初期化. .envファイルからURLとanonKeyを取得して設定.
+  await Supabase.initialize(
+    url: dotenv.get('VAR_URL'),
+    anonKey: dotenv.get('VAR_ANONKEY'),
+  );
+  //eof_20240519_deleta_Vercel.json対応
+  
+  // // 20240519_add_Vercel.json対応_ビルド時に設定された環境変数を読み込む
+  // const varUrl = String.fromEnvironment('VAR_URL', defaultValue: '');
+  // const varAnonKey = String.fromEnvironment('VAR_ANONKEY', defaultValue: '');
+
+  // // Supabaseを初期化
+  // await Supabase.initialize(
+  //   url: varUrl,
+  //   anonKey: varAnonKey,
+  // );
+  // --eof 
+
+  // // 20240519_002 add Vecel.json 対応2回目//
+  // await dotenv.load();
+
+  // // 20240519_002_add_Vercel.json対応_ビルド時に設定された環境変数を読み込む
+  // const varUrl = String.fromEnvironment('VAR_URL', defaultValue: '');
+  // const varAnonKey = String.fromEnvironment('VAR_ANONKEY', defaultValue: '');
+
+  // // 20240519_002_add_Supabaseを初期化
+  // await Supabase.initialize(
+  //   url: varUrl,
+  //   anonKey: varAnonKey,
+  // );
+  // // 20240519_002_eof
+
+  // Flutterアプリを起動.
+  runApp(const FlutterTestApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+// メインのFlutterアプリケーションクラス.
+class FlutterTestApp extends StatelessWidget {
+  const FlutterTestApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'Home333',
+      // 20240519_002_Vercel.json対応
+      home: const HomePage(),  // ホーム画面としてHomePageを指定.
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+// HomePageクラスとその状態管理クラス.
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _HomePageState extends State<HomePage> {
+  // Supabaseのストリームを設定してデータベースの変更をリアルタイムで監視.
+  final _carMaintenanceStream = Supabase.instance.client
+      .from('t_car_maintenance')
+      .stream(primaryKey: ['id']);
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  // フォームの入力値を保存するためのコントローラー.
+  final TextEditingController _body = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('My Notes'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
+      // StreamBuilderを使用してリアルタイムでデータの変更を反映.
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _carMaintenanceStream,
+        builder: (context, snapshot) {
+          // データがまだ読み込まれていない場合、プログレスインジケーターを表示.
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          // 取得したデータをリストで表示.
+          final carMaintenance = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: carMaintenance.length,
+            itemBuilder: (context, index) {
+              final item = carMaintenance[index];
+              final body = item['content'] as String?;
+              final createdAt = item['created_at'] as String?;
+
+              return ListTile(
+                trailing: SizedBox(
+                  width: 100,
+                  child: Row(
+                    children: [
+                      // 編集ボタン
+                      IconButton(
+                        onPressed: () async {
+                          // ダイアログを表示してノートの編集を行う.
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              return SimpleDialog(
+                                title: const Text('Add a Note'),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 1.0),
+                                children: [
+                                  TextFormField(
+                                    controller: _body,  // 入力フォームのコントローラーを設定.
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      // データベースの内容を更新する処理.
+                                      await Supabase.instance.client
+                                          .from('t_car_maintenance')
+                                          .update({'content': _body.text})
+                                          .match({'id': item['id']});
+                                      Navigator.of(context).pop();  // ダイアログを閉じる.
+                                    },
+                                    child: const Text('Put'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.edit,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                      // 削除ボタン
+                      IconButton(
+                        onPressed: () async {
+                          // 選択したアイテムをデータベースから削除する処理.
+                          await Supabase.instance.client
+                              .from('t_car_maintenance')
+                              .delete()
+                              .match({'id': item['id']});
+                        },
+                        icon: const Icon(
+                          Icons.delete,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                title: Text(body ?? 'No body'), // ノートの内容を表示.
+                subtitle: Text(createdAt ?? 'No date'), // 作成された日時を表示.
+              );
+            },
+          );
+        },
       ),
+      // 追加ボタン
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
+        onPressed: () {
+          // ダイアログを表示して新しいノートを追加する処理.
+          showDialog(
+            context: context,
+            builder: (context) {
+              return SimpleDialog(
+                title: const Text('Add a Note'),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 1.0),
+                children: [
+                  TextFormField(
+                    controller: _body,  // 入力フォームのコントローラーを設定.
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // 新しいノートをデータベースに追加する処理.
+                      await Supabase.instance.client
+                          .from('t_car_maintenance')
+                          .insert({'content': _body.text});
+                      Navigator.of(context).pop();  // ダイアログを閉じる.
+                    },
+                    child: const Text('Post'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }
